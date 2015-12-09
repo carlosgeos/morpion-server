@@ -10,7 +10,7 @@
 \usepackage{fancyhdr} % to be able to make the page fancy looking
 \usepackage{lastpage} % so latex knows what is the last page...
 \usepackage{color} % For text colors
-%\usepackage{palatino} % Change font
+\usepackage{palatino} % Change font
 %\usepackage{tabularx}
 \usepackage{listings}
 
@@ -76,13 +76,33 @@ mettant en place un service de jeu ``Morpion''.
 
 Un stream socket typique est choisie, etc...
 
+\subsection{Libraries utilisés}
+\label{sec:lib}
+
+\begin{itemize}
+\item \textbf{<unistd.h> - }Gere principalement
+\item \textbf{<sys/types.h> - }Plusieurs macros et types predefinies
+  comme \texttt{AF\_UNSPEC} ou \texttt{SOCK\_STREAM}
+\item \textbf{<sys/socket.h> - }Librarie principale contenant les
+  methodes...
+\item \textbf{otro}
+\end{itemize}
+
+\subsection{Gestion d'erreurs et exceptions}
+\label{sec:err}
+
+
+
 \section{Choix realisés}
 \label{sec:choix}
 
 \subsection{Structures de données}
 \label{sec:struct}
 
-Listes...
+Deux structures de donnees doivent etre remplies (a la main ou avec
+des methodes auxilaires).
+
+\texttt{sockaddr\_storage} contient l'addresse.
 
 \subsection{System Calls}
 \label{sec:syscall}
