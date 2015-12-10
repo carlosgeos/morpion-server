@@ -1,4 +1,3 @@
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
@@ -13,65 +12,98 @@
 #include <signal.h>
 
 #define PORT "5555"
+#define BACKLOG 3 		/* Pending connections the queue will hold */
 
-
-struct addrinfo * getGoodies(void) {
+struct addrinfo *getGoodies(void) {
   struct addrinfo *goodies;
   struct addrinfo suggestions;		  /* Main data structure */
   memset(&suggestions, 0, sizeof(suggestions));
-  suggestions.ai_family = AF_UNSPEC; /* IP4 or IP6 */
+  suggestions.ai_family = AF_INET6;	 /* IPv4 not IPv6 */
   suggestions.ai_protocol = IPPROTO_TCP; /* TCP no raw or UDP */
   suggestions.ai_socktype = SOCK_STREAM; /* TCP connection oriented */
-  //suggestions.ai_flags = AI_PASSIVE;
 
-  /* Null without ai passive gives localhost afterwards, for
-     applications that intent to communicate with peers on same machine */
+  int ecode;
+  if((ecode = getaddrinfo(NULL, PORT, &suggestions, &goodies)) != 0) {
+    printf("Failed getting address information: %s\n" , gai_strerror(ecode));
+  } /* status should be 0, not -1 */
 
-  int status = getaddrinfo(NULL, PORT, &suggestions, &goodies); /* status should be 0, not -1 */
-  //char ipstr[INET6_ADDRSTRLEN];
+  return goodies;
 
-  /* for (gp = goodies; gp != NULL; gp = gp -> ai_next) { */
-  /*   void *addr; */
-  /*   char *ipver; */
-  /*   int sockett; */
+}
 
-  /*   // get the pointer to the address itself, */
-  /*   // different fields in IPv4 and IPv6: */
-  /*   if (gp->ai_family == AF_INET) { // IPv4 */
-  /*     struct sockaddr_in *ipv4 = (struct sockaddr_in *)gp->ai_addr; */
-  /*     addr = &(ipv4->sin_addr); */
-  /*     ipver = "IPv4"; */
-  /*     sockett = gp -> ai_socktype; */
+int prepareSocket(struct addrinfo* goodies) {
+  int sockfd;
+  if ((sockfd = socket(goodies -> ai_family,
+		       goodies -> ai_socktype,
+		       goodies -> ai_protocol)) == -1) {
+    perror("Failed creating socket"); /* and print last error encountered */
+    exit(EXIT_FAILURE);
+  }
 
-  /*   } else { // IPv6 */
-  /*     struct sockaddr_in6 *ipv6 = (struct sockaddr_in6 *)gp->ai_addr; */
-  /*     addr = &(ipv6->sin6_addr); */
-  /*     ipver = "IPv6"; */
-  /*     sockett = gp -> ai_socktype;; */
+  int reuse_addr_to_true = 1;
+  if (setsockopt(sockfd, SOL_SOCKET,
+  		 SO_REUSEADDR, &reuse_addr_to_true, sizeof(int)) == -1) {
+    perror("Failed setting reuse address option for the socket");
+    exit(EXIT_FAILURE);
+  }
 
-  /*   } */
-  /*   // convert the IP to a string and print it: */
-  /*   inet_ntop(gp->ai_family, addr, ipstr, sizeof ipstr); */
-  /*   printf(" %s: %s\n", ipver, ipstr); */
-  /*   printf("Socket type: %i\n", sockett); */
-  /* } */
+  if (bind(sockfd, goodies -> ai_addr, goodies -> ai_addrlen) == -1) {
+    close(sockfd);
+    perror("Failed to assign addr to socket file descriptor");
+    exit(EXIT_FAILURE);
+  }
 
-  return gp;
+  freeaddrinfo(goodies); 	/* No need for this anymore */
 
+  if (listen(sockfd, BACKLOG)) {
+    perror("Could not mark the socket referenced by sockfd as passive");
+    exit(EXIT_FAILURE);
+  }
+
+  return sockfd;
+
+}
+
+void playMorpion(int new_fd) {
+  char *display;
+  int morpion[3][3] = {0};
+  display = "asdf";
+  char *otro = "qwer";
+  display = strcat(display, otro);
+
+  //size_t taille = sizeof display;
+
+  //send(new_fd, &taille, sizeof(size_t), 0);
+  send(new_fd, display, sizeof display, 0);
 }
 
 int main(void) {
 
-  struct addrinfo *pointer = getGoodies();
-  int sockfd;
+  struct addrinfo *goodies = getGoodies();
+  int sockfd = prepareSocket(goodies);
+  struct sockaddr_in6 ext_addr;
+  socklen_t sin_size;
 
-  //struct sockaddr_storage connector_addr; /* Can be IPv4 or IPv6, like
-  //					     sockaddr_in or
-  //sockaddr_in6 */
+  printf("Server waiting for connection...\n");
 
 
+  for (; ;) {
+    int new_fd; 			/* New file descriptor */
+    sin_size = sizeof ext_addr;
+    if ((new_fd = accept(sockfd, (struct sockaddr *)&ext_addr, &sin_size)) == -1) {
+      perror("Error extracting connection request");
+      exit(EXIT_FAILURE);
+    }
 
-  freeaddrinfo(pointer);
+    if (!fork()) {
+      close(sockfd); 		/* Close listener, dont need it */
+      playMorpion(new_fd);
+      close(new_fd);
+      exit(EXIT_SUCCESS);
+    }
+    close(new_fd); 		/* Already forked */
+
+  }
 
 
   return 0;
