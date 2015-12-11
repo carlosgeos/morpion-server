@@ -12,7 +12,8 @@
 #include <signal.h>
 
 #define PORT "5555"
-#define BACKLOG 3 		/* Pending connections the queue will hold */
+#define BACKLOG 5 		/* Pending connections the queue will hold */
+#define SIZE 3
 
 struct addrinfo *getGoodies(void) {
   struct addrinfo *goodies;
@@ -64,39 +65,63 @@ int prepareSocket(struct addrinfo* goodies) {
 
 }
 
-void playMorpion(int new_fd) {
-  char *display;
-  int morpion[3][3] = {0};
-  display = "asdf";
-  char *otro = "qwer";
-  display = strcat(display, otro);
+void sendPicture(int morpion[SIZE][SIZE], int new_fd) {
+  int rows;
+  int columns;
+  char display[50] = "\n-- Game -- \n";
+  for (rows = 0; rows < SIZE; ++rows) {
+    strcat(display, "[");
+    for (columns = 0; columns < SIZE; ++columns) {
+      if (morpion[rows][columns] == 1) {
+	strcat(display, " X");
+      } else if (morpion[rows][columns] == -1) {
+	strcat(display, " 0");
+      } else {
+	strcat(display, " .");
+      }
+    }
+    strcat(display, " ]\n");
+  }
 
-  //size_t taille = sizeof display;
-
-  //send(new_fd, &taille, sizeof(size_t), 0);
   send(new_fd, display, sizeof display, 0);
 }
+
+void playMorpion(int new_fd) {
+  int morpion[SIZE][SIZE] = {0};
+  morpion[1][1] = 1;
+  morpion[2][2] = -1;
+  sendPicture(morpion, new_fd);
+
+}
+
 
 int main(void) {
 
   struct addrinfo *goodies = getGoodies();
-  int sockfd = prepareSocket(goodies);
-  struct sockaddr_in6 ext_addr;
+  int sockfd = prepareSocket(goodies); /* Listener */
+  struct sockaddr_in6 guest;
   socklen_t sin_size;
 
   printf("Server waiting for connection...\n");
 
-
-  for (; ;) {
-    int new_fd; 			/* New file descriptor */
-    sin_size = sizeof ext_addr;
-    if ((new_fd = accept(sockfd, (struct sockaddr *)&ext_addr, &sin_size)) == -1) {
+  while (1) {
+    int new_fd; 			/* New file descriptor, where stuff happens */
+    sin_size = sizeof guest;
+    if ((new_fd = accept(sockfd, (struct sockaddr *)&guest, &sin_size)) == -1) {
       perror("Error extracting connection request");
       exit(EXIT_FAILURE);
     }
 
+    char from[INET6_ADDRSTRLEN];
+    inet_ntop(AF_INET6, &(guest.sin6_addr), from, INET6_ADDRSTRLEN);
+    printf("Got connection from: %s\n", from);
+
     if (!fork()) {
       close(sockfd); 		/* Close listener, dont need it */
+      char invite[50] = "Envoyer le chiffre 1 pour jouer, le chiffre 2 pour se déconnecter";
+      send(new_fd, invite, sizeof invite, 0);
+      char buf[100];
+      recv(new_fd, buf, sizeof buf, 0);
       playMorpion(new_fd);
       close(new_fd);
       exit(EXIT_SUCCESS);
