@@ -2,8 +2,8 @@ CC = gcc
 FLAGS = -Wall -Wextra
 FILE = rapport
 DIR = tex_files
-OPTIONS = -pdf -output-directory=$(DIR)
-PDF_V = evince			#open, okular, skim, adobe...
+OPTIONS = -xelatex -output-directory=$(DIR)
+PDF_V = evince
 
 compile: client.o server.o
 client.o: client.c

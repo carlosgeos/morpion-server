@@ -29,7 +29,6 @@ struct addrinfo *getGoodies(void) {
   } /* status should be 0, not -1 */
 
   return goodies;
-
 }
 
 int prepareSocket(struct addrinfo* goodies) {

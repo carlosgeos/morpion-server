@@ -1,16 +1,18 @@
 \documentclass[11pt,a4paper]{article}
 
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage[frenchb]{babel} % Global stuff set to french
-\usepackage[margin=2.5cm]{geometry} % The margin of the page
+
+
+\usepackage{fontspec}
+\setmainfont[Ligatures=TeX]{TeX Gyre Pagella}
+\setmonofont{DejaVu Sans Mono}
+%\usepackage[frenchb]{babel} % Global stuff set to french
+\usepackage[margin=2cm]{geometry} % The margin of the page
 %\usepackage{amsmath}  % to include math formulas
 \usepackage{graphicx} % to include pictures
 \usepackage[hidelinks]{hyperref} % To include hyperlinks in a PDF
 \usepackage{fancyhdr} % to be able to make the page fancy looking
 \usepackage{lastpage} % so latex knows what is the last page...
 \usepackage{color} % For text colors
-\usepackage{palatino} % Change font
 %\usepackage{tabularx}
 \usepackage{listings}
 
@@ -47,7 +49,9 @@
   keepspaces=true,                 % keeps spaces in text, useful for keeping indentation of code (possibly needs columns=flexible)
   keywordstyle=\color{myblue},       % keyword style
   language=c,                 % the language of the code
-  morekeywords={*,...},            % if you want to add more keywords to the set
+  morekeywords={*,...},            % if you want to add more keywords
+                                % to the set
+  inputencoding=utf8,
   numbers=left,                    % where to put the line-numbers; possible values are (none, left, right)
   numbersep=9pt,                   % how far the line-numbers are from the code
   numberstyle=\footnotesize\color{mygray}, % the style that is used for the line-numbers
@@ -68,46 +72,76 @@
 \section{Introduction}
 \label{sec:intro}
 
-Ce projet s'attaque a la realisation d'une application Client-Serveur
-mettant en place un service de jeu ``Morpion''.
+Le but de ce projet est la réalisation d'une application
+Client-Serveur mettant en place un service de jeu ``Morpion''. Les
+notions de IPC (Inter Process Communication) et System Calls sont
+explorés.
 
 \section{Description d'architecture}
 \label{sec:des}
 
+Le programme est écrit en C, en utilisant tous les appels systèmes qui
+permettent de communiquer avec l'API (Application Programming
+Interface) des sockets. Un socket est une interface Un grand nombre de systèmes d'exploitation
+offrent cette interface.
+
+\medbreak
+
+Ces sockets font possible la communication inter processus aussi bien
+sur une même machine qu'à travers un réseau.
+
+\medbreak
+
+Le port!!!
+
+Un serveur devra offrir la possibilité de connexion à un nombre
+non-limité de clients. Ces derniers, se limittent à envoyer des rêquetes.
+
 Un stream socket typique est choisie, etc...
-
-\subsection{Libraries utilisés}
-\label{sec:lib}
-
-\begin{itemize}
-\item \textbf{<unistd.h> - }Gere principalement
-\item \textbf{<sys/types.h> - }Plusieurs macros et types predefinies
-  comme \texttt{AF\_UNSPEC} ou \texttt{SOCK\_STREAM}
-\item \textbf{<sys/socket.h> - }Librarie principale contenant les
-  methodes...
-\item \textbf{otro}
-\end{itemize}
 
 \subsection{Gestion d'erreurs et exceptions}
 \label{sec:err}
 
+perror
 
+\section{System calls}
+\label{sec:calls}
 
-\section{Choix realisés}
-\label{sec:choix}
+\begin{itemize}
+\item \texttt{\textbf{getaddrinfo():}} L'usage de cette fonction est optionel,
+  vu que client et serveur sont dans la mâchine et on connaît le
+  protocole, le type de socket et la version IP à utiliser. Néanmoins,
+  ça peut servir pour étendre les fonctionnalités du programme.
+\item \texttt{\textbf{socket():}} Crée un point final de communication et
+  renvoie un descripteur de fichier. Les sockets peuvent avoir de
+  différents types, qui correspondent à la famille de protocoles à
+  utiliser.
+\item \texttt{\textbf{bind():}} Fournie un nom (adresse) à un socket, à l'aide
+  des structures de données précédemment completées (comme
+  \texttt{sockaddr}). Avant cet appel, le socket créé avec
+  \texttt{socket()} n'a pas de nom formel.
+\item \texttt{\textbf{listen():}} fd
+\item \texttt{\textbf{connect():}} Pour les sockets en mode connecté
+  (\texttt{SOCK\_STREAM} par example, qui utilise le protocole TCP),
+  cet appel extrait la première connexion de la file d'attente et
+  renvoie un nouveau ``file descriptor'' qui fait référence à un
+  nouveau socket. Ce descripteur de fichier peut être utilisé pour
+  transmettre information entre les processus, tandis que le socket
+  originel est laissé intact et continue à l'écoute.
+\item \texttt{\textbf{accept():}} asdf
+\item \texttt{\textbf{send():}} Permet de transmettre un message à destination
+  d'une autre socket. L'appel système \texttt{write()} est le même
+  sans avoir la possibilité d'ajouter des \emph{flags}.
+\end{itemize}
+
 
 \subsection{Structures de données}
 \label{sec:struct}
 
-Deux structures de donnees doivent etre remplies (a la main ou avec
-des methodes auxilaires).
+Deux structures de donnees doivent être remplies (à la main ou avec
+les méthodes auxilaires).
 
 \texttt{sockaddr\_storage} contient l'addresse.
-
-\subsection{System Calls}
-\label{sec:syscall}
-
-Send, wait...
 
 \subsection{Procotol??}
 \label{sec:prot}
@@ -120,10 +154,10 @@ TCP stream socket?
 
 \section{Listing}
 
-
-
 \lstinputlisting[]{client.c}
+\newpage
 \lstinputlisting[]{server.c}
+\newpage
 \lstinputlisting[language=make]{Makefile}
 
 \end{document}

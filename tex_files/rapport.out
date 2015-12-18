@@ -1,8 +1,7 @@
 \BOOKMARK [1][-]{section.1}{Introduction}{}% 1
-\BOOKMARK [1][-]{section.2}{Description d'architecture}{}% 2
-\BOOKMARK [2][-]{subsection.2.1}{Libraries utilis\351s}{section.2}% 3
-\BOOKMARK [1][-]{section.3}{Choix realis\351s}{}% 4
-\BOOKMARK [2][-]{subsection.3.1}{Structures de donn\351es}{section.3}% 5
-\BOOKMARK [2][-]{subsection.3.2}{System Calls}{section.3}% 6
-\BOOKMARK [2][-]{subsection.3.3}{Procotol??}{section.3}% 7
-\BOOKMARK [1][-]{section.4}{Listing}{}% 8
+\BOOKMARK [1][-]{section.2}{Description\040d'architecture}{}% 2
+\BOOKMARK [2][-]{subsection.2.1}{Gestion\040d'erreurs\040et\040exceptions}{section.2}% 3
+\BOOKMARK [1][-]{section.3}{System\040calls}{}% 4
+\BOOKMARK [2][-]{subsection.3.1}{Structures de données}{section.3}% 5
+\BOOKMARK [2][-]{subsection.3.2}{Procotol??}{section.3}% 6
+\BOOKMARK [1][-]{section.4}{Listing}{}% 7
