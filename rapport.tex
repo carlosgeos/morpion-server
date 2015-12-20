@@ -3,8 +3,8 @@
 
 
 \usepackage{fontspec}
-\setmainfont[Ligatures=TeX]{TeX Gyre Pagella}
-\setmonofont{DejaVu Sans Mono}
+\setmainfont{Optima}
+\setmonofont{Monaco}
 %\usepackage[frenchb]{babel} % Global stuff set to french
 \usepackage[margin=2cm]{geometry} % The margin of the page
 %\usepackage{amsmath}  % to include math formulas
@@ -82,27 +82,49 @@ explorés.
 
 Le programme est écrit en C, en utilisant tous les appels systèmes qui
 permettent de communiquer avec l'API (Application Programming
-Interface) des sockets. Un socket est une interface Un grand nombre de systèmes d'exploitation
+Interface) des sockets. Un grand nombre de systèmes d'exploitation
 offrent cette interface.
 
 \medbreak
 
 Ces sockets font possible la communication inter processus aussi bien
-sur une même machine qu'à travers un réseau.
+sur une même machine qu'à travers un réseau. Sachant où trouver un
+socket les processus peuvent écrire ou lire des données. Une adresse
+socket est la combinaison d'une adresse IP (Internet Protocol) et un
+numéro de port. Cette notion de port permet de distinguer les
+différents interlocuteurs dans une même machine, et séparer leur
+services offert. Par example, plusieurs logiciels serveur et clients
+peuvent être créé et la communication entre eux se fait sans
+interférence.
 
 \medbreak
 
-Le port!!!
+Un socket est aussi défini par le protocole de transport des octets
+(segments de paquets) dans le réseau. Pour ce projet le protocole
+choisi est TCP (Transmission Control Protocol), qui est fiable et en
+mode connecté (avec validation et vérification d'erreurs). Le réseau
+utilisera le protocole IPv6.
 
-Un serveur devra offrir la possibilité de connexion à un nombre
-non-limité de clients. Ces derniers, se limittent à envoyer des rêquetes.
+\medbreak
 
-Un stream socket typique est choisie, etc...
+Le serveur devra offrir la possibilité de connexion à un nombre
+non-limité de clients. Pour respecter cette contrainte, le serveur
+créera un processus fils (fork) et un nouveau socket pour la
+transmission des données entre lui et son nouveau client. Dans un
+modèle client-serveur, ce derniers envoyent normalement les rêquetes,
+et le serveur devra dans la mesure du possible, traiter les données
+pour distribuer la charge de travail.
 
 \subsection{Gestion d'erreurs et exceptions}
 \label{sec:err}
 
-perror
+Toute erreur qui a lieu au moment de la connexion résulte en
+\texttt{exit()} du programme. L'appel système \texttt{perror()} est
+utilisé pour afficher un message d'erreur sur la sortie d'erreur
+standard (\texttt{stderr}) décrivant la dernière erreur rencontrée
+durant un appel système. La librarie \texttt{errno.h} décrit aussi un
+grand nombre des macros et codes d'erreurs qui en font partie de la
+gestion d'erreurs de la fonction mentionée.
 
 \section{System calls}
 \label{sec:calls}
@@ -120,18 +142,27 @@ perror
   des structures de données précédemment completées (comme
   \texttt{sockaddr}). Avant cet appel, le socket créé avec
   \texttt{socket()} n'a pas de nom formel.
-\item \texttt{\textbf{listen():}} fd
-\item \texttt{\textbf{connect():}} Pour les sockets en mode connecté
+\item \texttt{\textbf{listen():}} Marque le socket référencé comme un
+  socket passive, c'est-à-dire comme un socket qui sera utilisé pour
+  accepter les demandes de connexions entrantes. Un de ses paramètre
+  définit la longeur maximale de la file des connexions en attente.
+\item \texttt{\textbf{accept():}} Pour les sockets en mode connecté
   (\texttt{SOCK\_STREAM} par example, qui utilise le protocole TCP),
   cet appel extrait la première connexion de la file d'attente et
   renvoie un nouveau ``file descriptor'' qui fait référence à un
   nouveau socket. Ce descripteur de fichier peut être utilisé pour
   transmettre information entre les processus, tandis que le socket
   originel est laissé intact et continue à l'écoute.
-\item \texttt{\textbf{accept():}} asdf
+\item \texttt{\textbf{connect():}} Connecte un socket (défini toujours
+  par un descripteur de fichier) à une adresse (IP + Port). Si le
+  socket est en mode connecté, alors cet appel essaye de connecter
+  avec un autre socket à l'adresse indiquée.
 \item \texttt{\textbf{send():}} Permet de transmettre un message à destination
   d'une autre socket. L'appel système \texttt{write()} est le même
   sans avoir la possibilité d'ajouter des \emph{flags}.
+\item \texttt{\textbf{recv():}} Utilisé pour recevoir des messages
+  depuis un socket, c'est-à-dire, lire des données dans le socket
+  reférence par un descripteur de fichier.
 \end{itemize}
 
 
@@ -141,14 +172,36 @@ perror
 Deux structures de donnees doivent être remplies (à la main ou avec
 les méthodes auxilaires).
 
-\texttt{sockaddr\_storage} contient l'addresse.
+\begin{lstlisting}[language=c]
+struct addrinfo {
+    int              ai_flags;
+    int              ai_family;    // AF_INET, AF_INET6, AF_UNSPEC
+    int              ai_socktype;  // SOCK_STREAM (TCP), SOCK_DGRAM (UDP)
+    int              ai_protocol;  // 0 -> any
+    size_t           ai_addrlen;   // size of ai_addr in bytes
+    struct sockaddr *ai_addr;      // struct sockaddr_in (IPv4) or _in6
+    char            *ai_canonname;
+    struct addrinfo *ai_next;      // pointer next node
+};
+\end{lstlisting}
 
-\subsection{Procotol??}
-\label{sec:prot}
+Dans notre cas et pour ce projet, cette structure de donées contient
+information superflue, et on s'interesse principalement à
+\texttt{*ai\_addr} qui est de type \texttt{struct
+  sockaddr\_in6}. Contient toute l'information pour créer un socket.
 
-TCP stream socket?
 
+\begin{lstlisting}
+struct sockaddr_storage {
+    sa_family_t  ss_family;     // address family
 
+    char      __ss_pad1[_SS_PAD1SIZE];
+    int64_t   __ss_align;
+    char      __ss_pad2[_SS_PAD2SIZE];
+};
+\end{lstlisting}
+\texttt{sockaddr\_storage} contient une adresse réseau qu'on peut voir
+à l'aide de la function \texttt{inet\_ntop()}. (network to presentation)
 
 \newpage
 

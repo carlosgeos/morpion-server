@@ -14,7 +14,8 @@
 #define PORT "5555"
 #define BACKLOG 5 		/* Pending connections the queue will hold */
 #define SIZE 3
-
+#define PLAYER 1
+#define MACHINE 0
 
 const int GAME_START = 1;
 
@@ -69,13 +70,12 @@ int prepareSocket(struct addrinfo* goodies) {
 
 int libre(char morpion[SIZE][SIZE], int x, int y) {
   if (morpion[x][y] == 'X' || morpion[x][y] == 'O') {
-    printf("busy!!!");
     return 0;
   }
   return 1;
 }
 
-void mark_case(char morpion[SIZE][SIZE], int choice) {
+int mark_case(char morpion[SIZE][SIZE], int choice, int player) {
   int x;
   int y;
   if (!choice%SIZE) {
@@ -85,23 +85,63 @@ void mark_case(char morpion[SIZE][SIZE], int choice) {
   }
 
   if (libre(morpion, x, y)) {
-    morpion[x][y] = 'X';
+    if (player) {
+      morpion[x][y] = 'X';
+    } else {
+      morpion[x][y] = 'O';
+    }
+    return 1;
+  }
+  return 0;
+}
+
+void choose_case(char morpion[SIZE][SIZE]) {
+  int chosen = 0;
+  while (!chosen) {
+    int choice = rand() % 9 + 1;
+    printf("choice machine: %i\n", choice);
+    if (mark_case(morpion, choice, MACHINE)) chosen = 1;
   }
 }
 
+/* TODO: End game condition not working */
+
+/* int game_won(char morpion[SIZE][SIZE]) { */
+/*   if((morpion[0][0] == morpion[1][1] && */
+/*       morpion[0][0] == morpion[2][2]) || */
+/*      (morpion[0][2] == morpion[1][1] && */
+/*       morpion[0][2] == morpion[2][0])) */
+/*     return 1; */
+/*   else */
+/*     for(int row = 0; row <= 2; row ++) */
+/*       if((morpion[row][0] == morpion[row][1] && */
+/* 	  morpion[row][0] == morpion[row][2])|| */
+/* 	 (morpion[0][row] == morpion[1][row] && */
+/* 	  morpion[0][row] == morpion[2][row])) */
+/* 	return 1; */
+/*   return 0; */
+/* } */
+
+
 void play_morpion(int new_fd) {
-  int done = 0;
+  int times;
+  //int winner = 0;
   char morpion[SIZE][SIZE] = {{'1', '2', '3'},
 			     {'4', '5', '6'},
 			     {'7', '8', '9'}};
   int choice;
-  while(!done) {
+  for (times = 0; times < SIZE*SIZE; ++times) {
+
+    /* if (game_won(morpion)) */
+    /*   done = 1; winner = PLAYER; out(winner); */
+    choose_case(morpion);
     send(new_fd, morpion, sizeof morpion, 0);
+    /* if (game_won(morpion)) */
+    /*   done = 1; winner = MACHINE; out(winner); */
     recv(new_fd, &choice, sizeof choice, 0);
 
     if (choice > 0 && choice < 10) {
-      mark_case(morpion, choice);
-
+      mark_case(morpion, choice, PLAYER);
     }
   }
 }
