@@ -10,7 +10,9 @@
 #include <arpa/inet.h>
 
 #define PORT "5555"
-#define MAXDATASIZE 1000
+#define MAXDATASIZE 200
+#define SIZE 3
+#define GAME_START 1
 
 // get sockaddr, IPv4 or IPv6:
 void *get_in_addr(struct sockaddr *sa)
@@ -20,10 +22,45 @@ void *get_in_addr(struct sockaddr *sa)
   }
   return &(((struct sockaddr_in6*)sa)->sin6_addr);
 }
-int main(int argc, char *argv[])
-{
-  int sockfd, numbytes;
-  char buf[MAXDATASIZE];
+
+
+void get_picture(char morpion[SIZE][SIZE]) {
+  printf("\n\n-- Game Board -- \n\n");
+  printf("+---+---+---+\n");
+  printf("| %c | %c | %c |\n", morpion[0][0], morpion[0][1], morpion[0][2]);
+  printf("+---+---+---+\n");
+  printf("| %c | %c | %c |\n", morpion[1][0], morpion[1][1], morpion[1][2]);
+  printf("+---+---+---+\n");
+  printf("| %c | %c | %c |\n", morpion[2][0], morpion[2][1], morpion[2][2]);
+  printf("+---+---+---+\n\n");
+}
+
+void get_invite(int sockfd) {
+  char buf[70];
+  recv(sockfd, buf, sizeof buf, 0);
+  printf(buf);
+  int answer;
+  scanf("%i", &answer);
+  send(sockfd, &answer, sizeof(int), 0);
+}
+
+
+void play(int sockfd) {
+  char buf[SIZE][SIZE];
+  //int morpion[SIZE][SIZE];
+
+  while (recv(sockfd, buf, MAXDATASIZE-1, 0) != 0) {
+    system("clear");		/* Only works for UNIX, not portable */
+    get_picture(buf);
+    printf("Case à choisir (1-9): ");
+    int to_send;
+    scanf("%i", &to_send);
+    send(sockfd, &to_send, 4, 0);
+  }
+}
+
+int main(int argc, char *argv[]) {
+  int sockfd;
   struct addrinfo hints, *servinfo, *p;
   int rv;
   char s[INET6_ADDRSTRLEN];
@@ -31,6 +68,7 @@ int main(int argc, char *argv[])
     fprintf(stderr,"usage: client hostname\n");
     exit(1);
   }
+
   memset(&hints, 0, sizeof hints);
   hints.ai_family = AF_UNSPEC;
   hints.ai_socktype = SOCK_STREAM;
@@ -56,17 +94,16 @@ int main(int argc, char *argv[])
     fprintf(stderr, "client: failed to connect\n");
     return 2;
   }
+
+  /* Network to presentation of address */
   inet_ntop(p->ai_family, get_in_addr((struct sockaddr *)p->ai_addr),
 	    s, sizeof s);
-  printf("client: connecting to %s\n", s);
+
+  printf("Connecting to %s\n", s);
   freeaddrinfo(servinfo); // all done with this structure
-  if ((numbytes = recv(sockfd, buf, MAXDATASIZE-1, 0)) == -1) {
-    perror("recv");
-    exit(1);
-  }
-  buf[numbytes] = '\0';
-  printf("number of bytes received: %i\n", numbytes);
-  printf("client: received '%s'\n",buf);
+
+  get_invite(sockfd);
+  play(sockfd);
   close(sockfd);
   return 0;
 }

@@ -15,6 +15,9 @@
 #define BACKLOG 5 		/* Pending connections the queue will hold */
 #define SIZE 3
 
+
+const int GAME_START = 1;
+
 struct addrinfo *getGoodies(void) {
   struct addrinfo *goodies;
   struct addrinfo suggestions;		  /* Main data structure */
@@ -36,27 +39,27 @@ int prepareSocket(struct addrinfo* goodies) {
   if ((sockfd = socket(goodies -> ai_family,
 		       goodies -> ai_socktype,
 		       goodies -> ai_protocol)) == -1) {
-    perror("Failed creating socket"); /* and print last error encountered */
+    perror("server - Failed creating socket"); /* and print last error encountered */
     exit(EXIT_FAILURE);
   }
 
   int reuse_addr_to_true = 1;
   if (setsockopt(sockfd, SOL_SOCKET,
   		 SO_REUSEADDR, &reuse_addr_to_true, sizeof(int)) == -1) {
-    perror("Failed setting reuse address option for the socket");
+    perror("server - Failed setting reuse address option for the socket");
     exit(EXIT_FAILURE);
   }
 
   if (bind(sockfd, goodies -> ai_addr, goodies -> ai_addrlen) == -1) {
     close(sockfd);
-    perror("Failed to assign addr to socket file descriptor");
+    perror("server - Failed to assign addr to socket file descriptor");
     exit(EXIT_FAILURE);
   }
 
   freeaddrinfo(goodies); 	/* No need for this anymore */
 
   if (listen(sockfd, BACKLOG)) {
-    perror("Could not mark the socket referenced by sockfd as passive");
+    perror("server - Could not mark the socket referenced by sockfd as passive");
     exit(EXIT_FAILURE);
   }
 
@@ -64,33 +67,55 @@ int prepareSocket(struct addrinfo* goodies) {
 
 }
 
-void sendPicture(int morpion[SIZE][SIZE], int new_fd) {
-  int rows;
-  int columns;
-  char display[50] = "\n-- Game -- \n";
-  for (rows = 0; rows < SIZE; ++rows) {
-    strcat(display, "[");
-    for (columns = 0; columns < SIZE; ++columns) {
-      if (morpion[rows][columns] == 1) {
-	strcat(display, " X");
-      } else if (morpion[rows][columns] == -1) {
-	strcat(display, " 0");
-      } else {
-	strcat(display, " .");
-      }
-    }
-    strcat(display, " ]\n");
+int libre(char morpion[SIZE][SIZE], int x, int y) {
+  if (morpion[x][y] == 'X' || morpion[x][y] == 'O') {
+    printf("busy!!!");
+    return 0;
   }
-
-  send(new_fd, display, sizeof display, 0);
+  return 1;
 }
 
-void playMorpion(int new_fd) {
-  int morpion[SIZE][SIZE] = {0};
-  morpion[1][1] = 1;
-  morpion[2][2] = -1;
-  sendPicture(morpion, new_fd);
+void mark_case(char morpion[SIZE][SIZE], int choice) {
+  int x;
+  int y;
+  if (!choice%SIZE) {
+    x = (choice/SIZE) - 1; y = SIZE - 1;
+  } else {
+    x = choice/SIZE; y = (choice%SIZE) - 1;
+  }
 
+  if (libre(morpion, x, y)) {
+    morpion[x][y] = 'X';
+  }
+}
+
+void play_morpion(int new_fd) {
+  int done = 0;
+  char morpion[SIZE][SIZE] = {{'1', '2', '3'},
+			     {'4', '5', '6'},
+			     {'7', '8', '9'}};
+  int choice;
+  while(!done) {
+    send(new_fd, morpion, sizeof morpion, 0);
+    recv(new_fd, &choice, sizeof choice, 0);
+
+    if (choice > 0 && choice < 10) {
+      mark_case(morpion, choice);
+
+    }
+  }
+}
+
+int invite(const int new_fd) {
+  char invite[70] = "\nEnvoyer le chiffre 1 pour jouer, le chiffre 2 pour se déconnecter: ";
+  int answer = 0;
+  send(new_fd, invite, sizeof invite, 0);
+  int say;
+  recv(new_fd, &say, sizeof say, 0);
+  if (say == 1) {
+    answer = say;
+  }
+  return answer;
 }
 
 
@@ -107,21 +132,17 @@ int main(void) {
     int new_fd; 			/* New file descriptor, where stuff happens */
     sin_size = sizeof guest;
     if ((new_fd = accept(sockfd, (struct sockaddr *)&guest, &sin_size)) == -1) {
-      perror("Error extracting connection request");
+      perror("server - Error extracting connection request");
       exit(EXIT_FAILURE);
     }
 
     char from[INET6_ADDRSTRLEN];
     inet_ntop(AF_INET6, &(guest.sin6_addr), from, INET6_ADDRSTRLEN);
-    printf("Got connection from: %s\n", from);
+    printf("server - Got connection from: %s\n", from);
 
     if (!fork()) {
       close(sockfd); 		/* Close listener, dont need it */
-      char invite[50] = "Envoyer le chiffre 1 pour jouer, le chiffre 2 pour se déconnecter";
-      send(new_fd, invite, sizeof invite, 0);
-      char buf[100];
-      recv(new_fd, buf, sizeof buf, 0);
-      playMorpion(new_fd);
+      if (invite(new_fd)) play_morpion(new_fd);
       close(new_fd);
       exit(EXIT_SUCCESS);
     }
